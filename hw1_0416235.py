@@ -6,16 +6,15 @@ import argparse
 parser = argparse.ArgumentParser(description='Validating YAML file...')
 parser.add_argument('-i', '--inputFile', type=str, help='input filename', required=True)
 parser.add_argument('-o', '--outputFile', type=str, help='output filename', required=True)
-#parser.add_argument('-q', '--quite', action="store_true", help='quiet mode', default=False)
+parser.add_argument('-q', '--quiet', action="store_true", help='quiet mode', default=False)
 args = parser.parse_args()
 
 
 # Read input yaml
-
 inputyaml = yaml.load(open(args.inputFile, "r"))
 
 
-# Validation
+# Variable initialization
 schema = {'EC_Engine': {'populationSize': 100,
   'generationCount': 50,
   'randomSeed': 10,
@@ -23,11 +22,12 @@ schema = {'EC_Engine': {'populationSize': 100,
   'jobName': 'test',
   'scalingParam': 2.5}}
 mandatoryParams = ['populationSize', 'generationCount', 'evaluatorType']
-
 missingParams = []
 incorrectTypes = []
 exceptParams = []
 
+
+# Validation
 if 'EC_Engine' in inputyaml.keys():
     # check missing parameters
     for p in mandatoryParams:
@@ -54,5 +54,7 @@ validation = {'missingParams': sorted(missingParams),
 with open('rst.yml', 'w') as outfile:
     yaml.dump(validation, outfile, default_style=False)
 
-#if args.quiet is False:
-#    print(validation)
+
+# quite mode
+if not args.quiet:
+    print(validation)
