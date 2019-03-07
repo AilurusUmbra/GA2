@@ -1,2 +1,2 @@
-# GA2
-# GA2
+# Evolutionary Computing
+* Directed by Lindor
