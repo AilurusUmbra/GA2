@@ -51,7 +51,7 @@ else:
 # Write validation results
 validation = {'missingParams': sorted(missingParams),
               'incorrectTypes': sorted(incorrectTypes)}
-with open('rst.yml', 'w') as outfile:
+with open(args.outputFile, 'w') as outfile:
     yaml.dump(validation, outfile, default_style=False)
 
 
