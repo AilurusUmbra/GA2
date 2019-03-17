@@ -1,3 +1,4 @@
+""" Find other works at https://github.com/AilurusUmbra/GA2 """
 import yaml
 
 
