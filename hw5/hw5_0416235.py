@@ -27,7 +27,7 @@ def plotFitnessFunc(fitnessFunc, minLimit, maxLimit, granularity=100):
     y = []
     for x in x1:
         y.append(fitnessFunc(x))
-    return ax[2].plot(x1, y)
+    ax[2].plot(x1, y)
 
 
 def plotGeneration(pop):
@@ -58,7 +58,6 @@ class EV2_Config:
 
     # constructor
     def __init__(self,  inFileName):
-        # read YAML config and get EC_Engine section
         infile = open(inFileName, 'r')
         ymlcfg = yaml.load(infile)
         infile.close()
@@ -116,63 +115,63 @@ def printStats(pop, gen):
     global points
     removePlotGeneration(points)
     print('Generation:', gen)
-    avgval = 0
     maxval = pop[0].fit
     sigma = pop[0].sigma
+
+    fitlist = [x.fit for x in pop]
     for p in pop:
-        avgval += p.fit
         if p.fit > maxval:
             maxval = p.fit
             sigma = p.sigma
         print(str(p.x)+'\t'+str(p.fit)+'\t'+str(p.sigma))
 
     print('Max fitness', maxval)
-    print('Avg fitness', avgval/len(pop))
+    print('Avg fitness', np.mean(fitlist))
     print('Mutation rate', sigma)
     print('')
     points = plotGeneration(pop)
 
-    return maxval, avgval/len(pop), sigma
+    return maxval, np.mean(fitlist), np.std(fitlist), sigma
+
 
 # A trivial Individual class
 class Individual:
-    minSigma=0.0001
-    maxSigma=1
-    learningRate=1 # n = 1, take learningRate = 1/n^0.5 = 1
-    minLimit=None
-    maxLimit=None
-    cfg=None
-    prng=None
-    fitFunc=None
+    minSigma = 0.0001
+    maxSigma = 1
+    learningRate = 1  # n = 1, take learningRate = 1/n^0.5 = 1
+    minLimit = None
+    maxLimit = None
+    prng = None
 
-    def __init__(self,randomInit=True):
+    def __init__(self, randomInit=True):
         if randomInit:
-            self.x=self.prng.uniform(self.minLimit,self.maxLimit)
-            self.fit=self.__class__.fitFunc(self.x)
-            self.sigma=self.prng.uniform(0.9,0.1) #use "normalized" sigma
+            self.x = self.prng.uniform(self.minLimit, self.maxLimit)
+            self.fit = fitnessFunc(self.x)
+            self.sigma = self.prng.uniform(0.9, 0.1)
         else:
-            self.x=0
-            self.fit=0
-            self.sigma=self.minSigma
+            self.x = 0
+            self.fit = 0
+            self.sigma = self.minSigma
 
-    def crossover(self, other):
-        child=Individual(randomInit=False)
-        alpha=self.prng.random()
-        child.x=self.x*alpha+other.x*(1-alpha)
-        child.sigma=self.sigma*alpha+other.sigma*(1-alpha)
-        child.fit=None
+    def crossover(self, parent2):
+        child = Individual(randomInit=False)
+        alpha = self.prng.random()
+        child.x = self.x*alpha + parent2.x*(1-alpha)
+        child.sigma = self.sigma*alpha + parent2.sigma*(1-alpha)
 
         return child
 
     def mutate(self):
-        self.sigma=self.sigma*math.exp(self.learningRate*self.prng.normalvariate(0,1))
-        if self.sigma < self.minSigma: self.sigma=self.minSigma
-        if self.sigma > self.maxSigma: self.sigma=self.maxSigma
-
-        self.x=self.x+(self.maxLimit-self.minLimit)*self.sigma*self.prng.normalvariate(0,1)
+        self.sigma = self.sigma*math.exp(self.learningRate*self.prng.normalvariate(0,1))
+        if self.sigma < self.minSigma:
+            self.sigma = self.minSigma
+        if self.sigma > self.maxSigma:
+            self.sigma = self.maxSigma
+        # use max-min to tune the convegence
+        self.x = self.x+(self.maxLimit-self.minLimit)*self.sigma*self.prng.normalvariate(0,1)
 
     def evaluateFitness(self):
-        self.fit=self.__class__.fitFunc(self.x)
+        self.fit = fitnessFunc(self.x)
 
 
 # EV2: hw5 for self-adapted sigma
@@ -185,7 +184,6 @@ def ev2(cfg):
     # set Individual static params: min/maxLimit, fitnessFunc, & prng
     Individual.minLimit = cfg.minLimit
     Individual.maxLimit = cfg.maxLimit
-    Individual.fitFunc = fitnessFunc
     Individual.prng = prng
 
     # random initialization of population
@@ -193,8 +191,6 @@ def ev2(cfg):
     for i in range(cfg.populationSize):
         ind=Individual()
         ind.evaluateFitness()
-        #x = prng.uniform(cfg.minLimit, cfg.maxLimit)
-        #ind = Individual(x, fitnessFunc(x))
         population.append(ind)
 
     # print stats
@@ -228,16 +224,15 @@ def ev2(cfg):
                 population[iworst] = children[j]
 
         # print stats
-        best_point, avg_point, sigma_point = printStats(population, i+1)
+        _best, _avg, _std, _sigma = printStats(population, i+1)
 
         # store plot metrics
-        fitlist = [x.fit for x in population]
-        ax[0].scatter(i, best_point, c='b')
+        ax[0].scatter(i, _best, c='b')
         ax[0].legend(['best fitness'])
-        ax[1].scatter(i, avg_point, c='g')
-        ax[1].scatter(i, np.std(fitlist), c='r')
+        ax[1].scatter(i, _avg, c='g')
+        ax[1].scatter(i, _std, c='r')
         ax[1].legend(['avg', 'stdev'], title="Statistics")
-        ax[3].scatter(i, sigma_point, c='b')
+        ax[3].scatter(i, _sigma, c='b')
         ax[3].legend(['sigma'])
 
 
@@ -269,7 +264,7 @@ def main(argv=None):
         print(cfg)
 
         # run EV2
-        result_plot = plotFitnessFunc(fitnessFunc, cfg.minLimit, cfg.maxLimit, 200)
+        plotFitnessFunc(fitnessFunc, cfg.minLimit, cfg.maxLimit, 200)
         ev2(cfg)
         #result_plot.pause(10)
 
